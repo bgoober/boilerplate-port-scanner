@@ -1,18 +1,30 @@
 import socket
-
 import common_ports
 
 def get_open_ports(target, port_range, verbose = False):
     open_ports = []
 
+    # Check if the target is a valid IP address
+    try:
+        socket.inet_aton(target)
+        is_ip = True
+    except socket.error:
+        is_ip = False
+
+    # Resolve the hostname
     try:
         ip_address = socket.gethostbyname(target)
+        if is_ip:
+            hostname = socket.gethostbyaddr(ip_address)[0]
+        else:
+            hostname = target
     except:
-        return("Error: Invalid hostname")
+        if is_ip:
+            return "Error: Invalid IP address"
+        else:
+            return "Error: Invalid hostname"
     
-    if ip_address == target:
-        return("Error: Invalid IP address")
-    
+    # Scan the ports
     for port in range(port_range[0], port_range[1] + 1):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(0.1)
@@ -21,12 +33,11 @@ def get_open_ports(target, port_range, verbose = False):
             open_ports.append(port)
         sock.close()
 
+    # Generate the verbose output
     if verbose:
-        output = f"Open ports for {target} ({ip_address})\nPORT     SERVICE\n"
+        output = f"Open ports for {hostname} ({ip_address})\nPORT     SERVICE"
         for port in open_ports:
-            output += f"{port}       {common_ports.ports_and_services[port]}\n"
-        return(output)
+            output += f"\n{port}       {common_ports.ports_and_services[port]}"
+        return output.strip()
     else:
-        return(open_ports)
-    
-print(get_open_ports("localhost", [79, 82], True))
+        return open_ports
